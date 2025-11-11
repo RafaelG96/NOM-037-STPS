@@ -270,6 +270,12 @@
   gap: 16px;
 }
 
+.photo-upload__description {
+  margin: 0;
+  color: var(--color-secondary);
+  font-weight: 500;
+}
+
 .photo-upload__field {
   display: flex;
   flex-direction: column;

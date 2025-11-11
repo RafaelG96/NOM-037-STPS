@@ -13,6 +13,17 @@ const QuestionnaireForm = ({ formConfig, storageKey }) => {
 
   const sections = useMemo(() => [formConfig], [formConfig])
   const photoUploadInputId = useMemo(() => `workspace-photos-${storageKey}`, [storageKey])
+  const photoUploadDescription = useMemo(() => {
+    if (storageKey === 'primera-vez') {
+      return 'Adjunta referencias visuales del lugar de trabajo propuesto para teletrabajar. Servirán como evidencia al presentar la solicitud inicial y facilitarán la evaluación de las condiciones de seguridad y salud.'
+    }
+
+    if (storageKey === 'revision') {
+      return 'Documenta el estado actual del espacio donde ya realizas Teletrabajo. Estas imágenes apoyan la verificación periódica y muestran que las condiciones continúan cumpliendo la NOM-037-STPS-2023.'
+    }
+
+    return 'Las fotografías complementan la información del formulario y facilitan la validación de las condiciones del espacio de trabajo.'
+  }, [storageKey])
 
   const handleAnswerChange = (id, value) => {
     setAnswers((prev) => ({
@@ -91,6 +102,7 @@ const QuestionnaireForm = ({ formConfig, storageKey }) => {
         })}
 
         <div className="photo-upload">
+          <p className="photo-upload__description">{photoUploadDescription}</p>
           <button type="button" className="secondary-button" onClick={handleTogglePhotoUpload}>
             {isPhotoUploadVisible ? 'Ocultar cargador de fotografías' : 'Agregar fotografías del espacio de trabajo'}
           </button>
