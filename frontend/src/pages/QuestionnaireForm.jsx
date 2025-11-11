@@ -8,8 +8,11 @@ import '../styles/form.css'
 const QuestionnaireForm = ({ formConfig, storageKey }) => {
   const [answers, setAnswers] = useState(() => loadAnswers(storageKey))
   const [statusMessage, setStatusMessage] = useState('')
+  const [isPhotoUploadVisible, setPhotoUploadVisible] = useState(false)
+  const [photoFiles, setPhotoFiles] = useState([])
 
   const sections = useMemo(() => [formConfig], [formConfig])
+  const photoUploadInputId = useMemo(() => `workspace-photos-${storageKey}`, [storageKey])
 
   const handleAnswerChange = (id, value) => {
     setAnswers((prev) => ({
@@ -40,6 +43,15 @@ const QuestionnaireForm = ({ formConfig, storageKey }) => {
     clearAnswers(storageKey)
     setAnswers({})
     setStatusMessage('Las respuestas almacenadas localmente se han eliminado.')
+  }
+
+  const handleTogglePhotoUpload = () => {
+    setPhotoUploadVisible((prev) => !prev)
+  }
+
+  const handlePhotoChange = (event) => {
+    const selectedFiles = Array.from(event.target.files || [])
+    setPhotoFiles(selectedFiles)
   }
 
   useEffect(() => {
@@ -77,6 +89,36 @@ const QuestionnaireForm = ({ formConfig, storageKey }) => {
             />
           )
         })}
+
+        <div className="photo-upload">
+          <button type="button" className="secondary-button" onClick={handleTogglePhotoUpload}>
+            {isPhotoUploadVisible ? 'Ocultar cargador de fotografías' : 'Agregar fotografías del espacio de trabajo'}
+          </button>
+
+          {isPhotoUploadVisible && (
+            <div className="photo-upload__field">
+              <label htmlFor={photoUploadInputId}>Selecciona fotografías del espacio de trabajo (formatos JPG, PNG o HEIC)</label>
+              <input
+                id={photoUploadInputId}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoChange}
+              />
+              <p>
+                Las fotografías se mantienen de forma local en esta sesión y servirán como respaldo visual de las condiciones del
+                espacio de trabajo.
+              </p>
+              {photoFiles.length > 0 && (
+                <ul className="photo-upload__list">
+                  {photoFiles.map((file) => (
+                    <li key={`${file.name}-${file.lastModified}`}>{file.name}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="form-actions">
           <button type="submit" className="primary-button">
