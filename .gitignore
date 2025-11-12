@@ -3,6 +3,7 @@ frontend/node_modules/
 
 # Build outputs
 frontend/dist/
+backend/uploads/
 
 # Environment files
 .env
