@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import GeneralInfoForm from '../components/GeneralInfoForm.jsx'
 import QuestionnaireSection from '../components/QuestionnaireSection.jsx'
 import { clearAnswers, loadAnswers, saveAnswers } from '../services/localStorageService.js'
+import { apiService } from '../services/apiService.js'
 import '../styles/form.css'
 
 const QuestionnaireForm = ({ formConfig, storageKey }) => {
@@ -10,6 +11,8 @@ const QuestionnaireForm = ({ formConfig, storageKey }) => {
   const [statusMessage, setStatusMessage] = useState('')
   const [isPhotoUploadVisible, setPhotoUploadVisible] = useState(false)
   const [photoFiles, setPhotoFiles] = useState([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [useAPI, setUseAPI] = useState(true) // Cambiar a false para usar solo localStorage
 
   const sections = useMemo(() => [formConfig], [formConfig])
   const photoUploadInputId = useMemo(() => `workspace-photos-${storageKey}`, [storageKey])
@@ -44,10 +47,59 @@ const QuestionnaireForm = ({ formConfig, storageKey }) => {
     })
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    saveAnswers(answers, storageKey)
-    setStatusMessage('Las respuestas se han guardado en este navegador. Exporta o imprime el formulario para respaldarlas.')
+    setIsSubmitting(true)
+    setStatusMessage('')
+
+    try {
+      if (useAPI) {
+        // Extraer información general del formulario
+        const generalInfo = {
+          nombre: answers.nombre || '',
+          actividad: answers.actividad || '',
+          edad: answers.edad || null,
+          dias_presenciales: answers.dias_presenciales || [],
+          dias_teletrabajo: answers.dias_teletrabajo || []
+        }
+
+        // Enviar al backend
+        const response = await apiService.saveResponse({
+          questionnaireType: storageKey,
+          respondentName: generalInfo.nombre,
+          respondentEmail: '',
+          respondentPhone: '',
+          answers: answers,
+          generalInfo: generalInfo
+        })
+
+        // Guardar también en localStorage como respaldo
+        saveAnswers(answers, storageKey)
+
+        // Subir fotos si hay
+        if (photoFiles.length > 0 && response.instanceId) {
+          try {
+            await apiService.uploadPhotos(response.instanceId, photoFiles)
+            setStatusMessage(`Respuestas y ${photoFiles.length} fotografía(s) guardadas correctamente en el servidor.`)
+          } catch (photoError) {
+            setStatusMessage(`Respuestas guardadas, pero hubo un error al subir las fotografías: ${photoError.message}`)
+          }
+        } else {
+          setStatusMessage('Respuestas guardadas correctamente en el servidor.')
+        }
+      } else {
+        // Modo localStorage (fallback)
+        saveAnswers(answers, storageKey)
+        setStatusMessage('Las respuestas se han guardado en este navegador. Exporta o imprime el formulario para respaldarlas.')
+      }
+    } catch (error) {
+      console.error('Error al guardar:', error)
+      // Fallback a localStorage si el API falla
+      saveAnswers(answers, storageKey)
+      setStatusMessage(`Error al conectar con el servidor. Las respuestas se guardaron localmente: ${error.message}`)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleClear = () => {
@@ -133,8 +185,8 @@ const QuestionnaireForm = ({ formConfig, storageKey }) => {
         </div>
 
         <div className="form-actions">
-          <button type="submit" className="primary-button">
-            Guardar respuestas
+          <button type="submit" className="primary-button" disabled={isSubmitting}>
+            {isSubmitting ? 'Guardando...' : 'Guardar respuestas'}
           </button>
           <button type="button" className="secondary-button" onClick={handleClear}>
             Limpiar respuestas guardadas
